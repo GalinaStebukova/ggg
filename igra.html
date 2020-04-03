@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Игра</title>
+</head>
+<body>
+<h1>Space N Vaders</h1>
+<canvas id="canvas" width="600" height="400" ></canvas>
+<script src="igra.js"></script>
+<script type="text/javascript">
+	var can = document.getElementById('canvas');
+	var c = can.getContext('2d');
+
+	player.width = 46;
+	player.height = 46;
+
+	var ship_image;
+	var ship_image2;
+	var bomb_image;
+	var bullet_image;
+	var ship_player;
+
+	loadResources();
+
+	var rand_spr = Math.round(Math.random());
+	if (rand_spr){
+		ship_player = ship_image;
+	}
+	else {
+		ship_player = ship_image2;
+	}
+
+	function loadResources(){
+		ship_image = new Image();
+		ship_image.src = "hunter1.png";
+
+		ship_image2 = new Image();
+ 	 	ship_image2.src = "hunter2.png";
+
+		bomb_image = new Image();
+		bomb_image.src = "bomb.png"
+
+		bullet_image = new Image();
+		bullet_image.src = "bullets.png"
+	}
+
+	function mainLoop(){
+		var c = can.getContext('2d');
+
+		updateGame();
+		updateBackground();
+		updateEnemies();
+		updatePlayer();
+		updatePlayerBullets();
+		updateEnemyBullets();
+		checkCollisions();
+
+		drawBackground(c);
+		drawEnemies(c);
+		drawPlayer(c);
+		drawEnemyBullets(c);
+		drawPlayerBullets(c);
+		drawOverlay(c);
+	}
+// игра
+
+		function firePlayerBullet(){
+			//создаем новую пулю
+			playerBullets.push({
+				x:player.x + 14,
+				y: player.y - 5,
+				width:20,
+				height:20,
+				counter:0,
+			});
+		}
+
+		function drawPlayer(c){
+			if (player.state == "dead") return;
+			if (player.state == "hit") {
+				if(p_hp ==1){
+					c.fillStyle = "yelow";
+				drawPlayerExplosion(c);
+				return;
+			}
+		}
+
+		if(game.state == "playing") {
+		    c.fillStyle = "white";
+		    c.font = "Bold 10pt Arial";
+		    c.fillText('left '+Math.floor(time_c/30)+'s',10,70);
+    		if(time_c <= 0){ 
+		        player.counter = 0;
+		        player.state = "dead";
+		        game.state = "over";
+		        overlay.title = "GAME OVER";
+		        overlay.subtitle = "press space to play again";
+		        overlay.counter = 0;
+		        time_c = 900;
+ 
+    }
+   		 time_c--;
+
+		    c.fillStyle = "white";
+		    c.font = "Bold 10pt Arial";
+		    c.fillText('score = '+score,10,20);
+		  
+
+    for (var i = 1; i <= p_hp; i++ ){
+        c.drawImage(ship_player,
+        25,1, 23,23, // исходные координаты
+        0, 100+(25*i), player.width/2, player.height/2 // конечные координаты
+
+        );
+    
+    }
+			
+
+			c.drawImage(ship_player,
+				25,1,23,23,
+				player.x,player.y,player.width,player.height);
+	}
+	}
+		
+
+		var particles = [];
+		function drawPlayerExplosion(c){
+			if(player.counter == 0){
+				particles = [];
+				for(var i =0;i<50;i++){
+					particles.push({
+						x:player.x + player.width/2,
+						y:player.y + player.height/2, 
+						xv:(Math.random()-0.5)*2.0*5.0, // скорость по х
+						yv:(Math.random()-0.5)*2.0*5.0, // скорость по у
+						age: 0,
+
+					});
+				}
+			}
+		
+
+		//обновление и роспыление
+		if(player.counter > 0){
+			for(var i=0; i<particles.length;i++){
+				var p = particles[i];
+				p.x += p.xv;
+				p.y += p.yv;
+				var v = 255-p.age*3;
+				c.fillStyle = "rgb("+v+", "+v+","+v+")";
+				c.fillRect (p.x,p.y,3,3);
+				p.age++;
+			}
+		}
+	}
+
+
+		function drawPlayerBullets(c){
+			c.fillStyle = "blue";
+			for (i in playerBullets){
+				var bullet = playerBullets[i];
+				var count = Math.floor(bullet.counter/4);
+				var xoff = (count%4)*24;
+				
+				if (game.state == "playing"){
+				c.drawImage(
+					bullet_image,
+					xoff+10,0+9,8,8,
+					bullet.x,bullet.y,bullet.width,bullet.height
+					);
+			}
+		}
+		}
+
+
+//фон
+
+		function drawBackground (c){
+			c.fillStyle = "black";
+			c.fillRect (0,0,can.width,can.height)
+		}
+
+//враги
+
+		function drawEnemies (c){
+			for (var i in enemies){
+				var enemy = enemies[i];
+				if(enemy.state == "alive"){
+					c.fillStyle = "green";
+					drawEnemy(c,enemy,15);
+				}
+				if (enemy.state == "hit"){
+					c.fillStyle = "purple";
+					enemy.shrink--;
+					drawEnemy(c,enemy,enemy.shrink);
+				}
+				if (enemy.state == "dead"){
+					c.fillStyle = "black";
+					c.drawEnemy(c,enemy,15);
+				}
+			}
+		}
+
+		function drawEnemy(c,enemy,radius){
+			if (radius <=0) radius = 1;
+			var theta = enemy.counter;
+			c.save();
+			c.translate (0,30);
+			circlePath (c,enemy.x,enemy.y, radius*2);
+			c.fill();
+			for (var i=0; i<10; i++){
+				var xoff = Math.sin(toRadians(theta+i*36*1.3))*radius;
+				var yoff = Math.sin(toRadians(theta+i*36*3.1))*radius;
+				circlePath(c, enemy.x + xoff, enemy.y + yoff,3);
+				c.fillStyle = "white";
+				c.fill();
+			}
+			c.restore();
+		}
+
+		function toRadians(d){
+			return d*Math.PI * 2.0 / 360.0;
+		}
+
+		function circlePath (c, x, y, r){
+			c.beginPath();
+			c.moveTo (x,y);
+			c.arc (x,y,r,0, Math.PI*2);
+		}
+
+
+		function createEnemyBullet(enemy){
+			return {
+				   	x:enemy.x,
+       			    y:enemy.y+enemy.height,
+        			width:30,
+        			height:30,
+       			    counter:0,
+			}
+		}
+		function drawEnemyBullets(c) {
+			for (var i in enemyBullets){
+				var bullet = enemyBullets[i];
+				var xoff = (bullet.counter%9)*12 +1;
+				var yoff =1;
+				c.drawImage(bomb_image,
+					xoff,yoff,11,11,
+					bullet.x,bullet.y,bullet.width,bullet.height
+					);
+
+			}
+		}
+//квадраты на картинку
+		function drawOverlay(c) {
+   			 if(overlay.counter == -1) return;
+c.save();
+    
+    //постеперенное усиление 
+   				 var alpha = overlay.counter/50.0;
+   			 if(alpha > 1) alpha = 1;
+				 c.globalAlpha = alpha;
+						    
+				 
+				 if(game.state == 'custom'){
+			    c.fillStyle = "white";
+			    c.font = "Bold 40pt Arial";
+			    c.fillText('Welcome to West Coast Customs',5,200);
+			  
+			    c.drawImage(ship_image2,
+			    25,1, 23,23, // исходные координаты
+			    350, 250, player.width, player.height // конечные координаты
+			    );
+			    c.font = "Bold 20pt Arial";
+			    c.fillText('press 2',330,320);
+
+			    c.drawImage(ship_image,
+			    25,1, 23,23, // исходные координаты
+			    150, 250, player.width, player.height // конечные координаты
+			    );
+			    c.font = "Bold 20pt Arial";
+			    c.fillText('press 1',130,320);
+			}
+			else{
+			    c.fillStyle = "white";
+			    c.font = "Bold 40pt Arial";
+			    c.fillText(overlay.title,140,200);
+			    c.font = "14pt Arial";
+			    c.fillText(overlay.subtitle, 190,250);
+			    if(game.state == 'first') 
+			    c.fillText(overlay.subtitle2, 190,300);
+			    c.fillText(overlay.subtitle3, 190,350);
+
+			}
+
+			  c.restore();
+			}
+				
+
+
+	doSetup();
+	setInterval(mainLoop,1000/30);
+
+</script>
+</body>
+</html>
